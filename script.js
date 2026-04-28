@@ -1,56 +1,76 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Scroll active links
-    const sections = document.querySelectorAll('section');
-    const navLinks = document.querySelectorAll('.nav-link');
+    const dot = document.querySelector('.cursor-dot');
+    const outline = document.querySelector('.cursor-outline');
+    const glow = document.querySelector('.glow-overlay');
 
-    window.addEventListener('scroll', () => {
-        let current = '';
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionHeight = section.clientHeight;
-            if (pageYOffset >= (sectionTop - 200)) {
-                current = section.getAttribute('id');
-            }
+    // Custom Cursor Movement
+    window.addEventListener('mousemove', (e) => {
+        const posX = e.clientX;
+        const posY = e.clientY;
+
+        // Dot follows instantly
+        dot.style.left = `${posX}px`;
+        dot.style.top = `${posY}px`;
+
+        // Outline follows with delay (handled by CSS transition usually, but can be JS)
+        outline.animate({
+            left: `${posX}px`,
+            top: `${posY}px`
+        }, { duration: 500, fill: "forwards" });
+
+        // Update glow position
+        document.documentElement.style.setProperty('--mouse-x', `${posX}px`);
+        document.documentElement.style.setProperty('--mouse-y', `${posY}px`);
+    });
+
+    // Hover effects for cursor
+    const interactiveElements = document.querySelectorAll('a, button, .portfolio-item');
+    interactiveElements.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            outline.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            outline.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
+            outline.style.borderColor = 'transparent';
         });
-
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href').includes(current)) {
-                link.classList.add('active');
-            }
+        el.addEventListener('mouseleave', () => {
+            outline.style.transform = 'translate(-50%, -50%) scale(1)';
+            outline.style.backgroundColor = 'transparent';
+            outline.style.borderColor = 'var(--accent-primary)';
         });
     });
 
-    // Mouse movement effect for background blobs
-    const blobs = document.querySelectorAll('.bg-blob');
-    document.addEventListener('mousemove', (e) => {
-        const x = e.clientX / window.innerWidth;
-        const y = e.clientY / window.innerHeight;
-        
-        blobs.forEach((blob, index) => {
-            const speed = (index + 1) * 20;
-            blob.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
-        });
-    });
-
-    // Reveal animation on scroll
+    // Scroll Reveal Intersection Observer
     const observerOptions = {
-        threshold: 0.1
+        threshold: 0.15,
+        rootMargin: '0px 0px -50px 0px'
     };
 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+                entry.target.classList.add('revealed');
+                observer.unobserve(entry.target);
             }
         });
     }, observerOptions);
 
-    document.querySelectorAll('section, .glass').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'all 0.8s ease-out';
+    // Apply reveal classes and observe
+    document.querySelectorAll('section, .portfolio-item').forEach(el => {
+        el.classList.add('reveal-init');
         observer.observe(el);
     });
+
+    // Add necessary CSS for reveal to the head
+    const style = document.createElement('style');
+    style.textContent = `
+        .reveal-init {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .reveal-init.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    `;
+    document.head.appendChild(style);
 });
